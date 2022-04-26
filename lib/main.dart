@@ -1,74 +1,104 @@
 import 'package:flutter/material.dart';
-import 'package:app_usage/app_usage.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:web_scraper/web_scraper.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(WebScraperApp());
 
-class MyApp extends StatefulWidget {
+class WebScraperApp extends StatefulWidget {
   @override
-  _MyAppState createState() => _MyAppState();
+  _WebScraperAppState createState() => _WebScraperAppState();
 }
 
-class _MyAppState extends State<MyApp> {
-  List<AppUsageInfo> _infos = [];
-  // DateTime newDate =DateTime.now();
-  //  DateTime endDate =DateTime.now();
+class _WebScraperAppState extends State<WebScraperApp> {
+  // initialize WebScraper by passing base url of website
+  final webScraper = WebScraper('https://webscraper.io');
+
+  // Response of getElement is always List<Map<String, dynamic>>
+  List<Map<String, dynamic>>? productNames;
+  List<Map<String, dynamic>>? productPrices;
+  List<Map<String, dynamic>>? productImages;
+  late List<Map<String, dynamic>> productDescriptions;
+
+  void fetchProducts() async {
+
+    // Loads web page and downloads into local state of library
+    if (await webScraper
+        .loadWebPage('/test-sites/e-commerce/allinone/computers/laptops')) {
+      setState(() {
+        // getElement takes the address of html tag/element and attributes you want to scrap from website
+        // it will return the attributes in the same order passed
+        productNames = webScraper.getElement(
+            'div.thumbnail > div.caption > h4 > a.title', ['href', 'title']);
+        productPrices = webScraper.getElement(
+            'div.thumbnail > div.caption >h4',  ['href', 'title']);
+        productImages = webScraper.getElement(
+            'div.thumbnail > div.img-responsive ',  ['href', 'src']);
+        productDescriptions = webScraper.getElement(
+            'div.thumbnail > div.caption > p.description', ['class']);
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-  }
-
-  getUsageStats(DateTime newDate) async {
-    try {
-      DateTime endDate =  newDate;
-      DateTime startDate = DateTime.now().subtract(Duration(minutes: 10));
-      List<AppUsageInfo> infoList = await AppUsage.getAppUsage(startDate, endDate);
-      setState(() {
-        _infos.clear();
-        _infos = infoList;
-        print("${startDate.minute}+" "${endDate.minute} +${endDate.minute-startDate.minute}");
-      });
-
-      for (var info in infoList) {
-        print(info.toString());
-      }
-    } on AppUsageException catch (exception) {
-      print(exception);
-    }
+    // Requesting to fetch before UI drawing starts
+    fetchProducts();
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          // title:  Text("${newDate.minute}" +"${endDate.minute} +${newDate.minute-endDate.minute}"),
-          backgroundColor: Colors.green,
-          leading: IconButton(icon: Icon(Icons.present_to_all_sharp),
-            onPressed: (){
-              getUsageStats(DateTime.now());
-            // newDate = DateTime.now() ;
-              // print(newDate);
-            },
-          ),
-        ),
-        body: Column(
-
-          children: [
-            // Text("${newDate.minute}+" "${endDate.minute} +${endDate.minute-newDate.minute}"),
-            Expanded(
-              child: ListView.builder(
-                  itemCount: _infos.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                        title: Text(_infos[index].appName),
-                        trailing: Text(_infos[index].usage.inMinutes.toString()));
-                  }),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-            onPressed: ()=>getUsageStats(DateTime.now()), child: Icon(Icons.file_download)),
+      title: 'Fetch Data Example',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
+      home: Scaffold(
+          appBar: AppBar(
+            title: Text('Product Catalog'),
+          ),
+          body: SafeArea(
+              child: productNames == null
+                  ? Center(
+                child:
+                CircularProgressIndicator(), // Loads Circular Loading Animation
+              )
+                  : ListView.builder(
+                  itemCount: productNames!.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    // Attributes are in the form of List<Map<String, dynamic>>.
+                    Map<String, dynamic> attributes =
+                    productNames![index]['attributes'];
+                    return ExpansionTile(
+                      title: Text("${attributes['title']}Price:: ${productPrices![index]['title']}"),
+                      children: <Widget>[
+                        Padding(
+                          padding: const EdgeInsets.all(10.0),
+                          child: Column(
+                            children: <Widget>[
+                              Container(
+                                child: Text(
+                                    "${productDescriptions[index]['title']} "),
+                                margin: EdgeInsets.only(bottom: 10.0),
+                              ),
+                              // Image.network("${productImages![index]['src']}"),
+                              InkWell(
+                                onTap: () {
+                                  // uses UI Launcher to launch in web browser & minor tweaks to generate url
+                                  launch(webScraper.baseUrl! +
+                                      attributes['href']);
+                                },
+                                child: Text(
+                                  'View Product',
+                                  style: TextStyle(color: Colors.blue),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      ],
+                    );
+                  }))),
     );
   }
 }
