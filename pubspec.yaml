@@ -47,6 +47,7 @@ dev_dependencies:
   flutter_lints: ^1.0.0
   home_widget: ^0.1.5
   workmanager: ^0.4.1
+  app_usage: ^2.0.0
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
