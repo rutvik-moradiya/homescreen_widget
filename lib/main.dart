@@ -31,11 +31,11 @@ class _WebScraperAppState extends State<WebScraperApp> {
             'div.thumbnail > div.caption > h4 > a.title', ['href', 'title']);
         productPrices = webScraper.getElement(
             'div.thumbnail > div.caption >h4',  ['href', 'title']);
-        productImages = webScraper.getElement(
-            'div.thumbnail > div.img-responsive ',  ['href', 'src']);
+        productImages = webScraper.getElement('div.thumbnail > img ',['src','src']);
         productDescriptions = webScraper.getElement(
             'div.thumbnail > div.caption > p.description', ['class']);
       });
+      print("${productImages![0]['attributes']['src']}");
     }
   }
 
@@ -81,7 +81,7 @@ class _WebScraperAppState extends State<WebScraperApp> {
                                     "${productDescriptions[index]['title']} "),
                                 margin: EdgeInsets.only(bottom: 10.0),
                               ),
-                              // Image.network("${productImages![index]['src']}"),
+                                Image.network("https://webscraper.io${productImages![index]['attributes']['src']}"),
                               InkWell(
                                 onTap: () {
                                   // uses UI Launcher to launch in web browser & minor tweaks to generate url
